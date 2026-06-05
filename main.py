@@ -88,10 +88,7 @@ if __name__ == "__main__":
                         help="Only perform alignment and skip grading.")
     
     #args = parser.parse_args()
-    #args = parser.parse_args(["-h"])
-    #args = parser.parse_args(["-f", "fasta", r".\testingdata\tprimer.csv", "testingdata" ])
-    #args = parser.parse_args(["-f", "fasta", r".\dummydata\tprimer.csv",".\dummydata"])
-    args = parser.parse_args([ r"-v","hantavirus", "tprimerhanta.csv", "tgenome.fna"])
+   
 
     primerin = args.primers
     genomein = args.genomes
