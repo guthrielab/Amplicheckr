@@ -1,0 +1,14 @@
+[project]
+name = "amplichekr"
+version = "1.0.0"
+description = "PCR primer alignment and scoring tool"
+requires-python = ">=3.12"
+readme = "README.md"
+authors = [
+    {name = "David Huang", email = "dhuan6@uwo.ca"}
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "biopython",
+]
