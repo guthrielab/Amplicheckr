@@ -29,3 +29,6 @@ def alignvis (qalign, dalign, bnmatr):
 #return the score of two nt using a matrix
 def score (kp, kt, matrix, convertd):
     return int(matrix[convertd[kp]][convertd[kt]])
+
+def truncate (s):
+    return s if len(s)<30 else s[:30]+"..."
