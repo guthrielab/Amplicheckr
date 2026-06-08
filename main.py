@@ -27,7 +27,7 @@ primers/sequences along genomes to score and validate amplicon efficiency.
 np.set_printoptions(legacy="1.25")
 
 ###### main function, run all, output#####
-def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr, mmmatr, alignonly=False):
+def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr, mmmatr, alignonly=False, html=None):
     try:
         count=1
         alignresults = []
@@ -55,19 +55,25 @@ def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr,
                 setdf = pd.concat(tempresult)
                 alignresults.append(setdf)
         
-        for i, j in enumerate(alignresults):
-            infotitle, warnings, report = primerscore(j, metadb, bdict, mmmatr, convertd)
-            print(f"\nPrimer set #{i+1}:")
-            print(infotitle) if len(infotitle)!=0 else print("No amplification")
-            print("\nDetails on primer failures:") if  len(j)!=0 else print()
-            for i, j in enumerate(warnings): print("#"+str(i+1)+": "+j)
-            flattenreport = [i for sublist in report for i in sublist]
-            for i in flattenreport: print(i)
+        if not html:
+            for i, j in enumerate(alignresults):
+                infotitle, warnings, report = primerscore(j, metadb, bdict, mmmatr, convertd, html)
+            
+                print(f"\nPrimer set #{i+1}:")
+                print(infotitle) if len(infotitle)!=0 else print("No amplification")
+                print("\nDetails on primer failures:") if  len(j)!=0 else print()
+                for i, j in enumerate(warnings): print("#"+str(i+1)+": "+j)
+                flattenreport = [i for sublist in report for i in sublist]
+                for i in flattenreport: print(i)
+        else:
+            pass
+        
+
+        
     except SystemError:
         print("Missing required rows in primer file")
    
 
-description = "123"
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("primers", 
@@ -81,20 +87,22 @@ if __name__ == "__main__":
     parser.add_argument("-k","--kmer", type=int, default=7,
                         help="Specify kmer length to use for indexing and searching (default k=7)")
     parser.add_argument("-v","--virus", default= "influenza",
-                        help="Target virus species (influenza/i, hantavirus/h). Default influenza, for any other virus entry segments are not documented")
+                        help="Target virus species (influenza/i, hantavirus/h)")
     parser.add_argument("-hi", "--hello", action="store_true",
                         help="hi")
     parser.add_argument("-a", "--align", action="store_true",
                         help="Only perform alignment and skip grading.")
-    
+    parser.add_argument("-H", "--html", action="store_true",
+                        help="Activate html report generator (silences stdout)")
+    parser.add_argument("-o", "--output", 
+                        help="Make html report instead of stdout, enter file name")
     args = parser.parse_args()
-   
 
     primerin = args.primers
     genomein = args.genomes
     mode = args.virus
     k = args.kmer
-
+    html = args.html
     if args.hello:
         print("hi")
     
@@ -112,7 +120,7 @@ if __name__ == "__main__":
     t0 = time.time_ns()
     
     
-    amplichekr(primerset, qudb, ntdb, index, k, metadb,bdict, convertd, bnmatr, mmmatr, args.align)
+    amplichekr(primerset, qudb, ntdb, index, k, metadb,bdict, convertd, bnmatr, mmmatr, args.align, html)
 
     tf = time.time_ns()
     print (f"finished in {(tf-t0)//1000000}ms")
