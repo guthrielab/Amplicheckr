@@ -63,8 +63,7 @@ def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr,
                 print(infotitle) if len(infotitle)!=0 else print("No amplification")
                 print("\nDetails on primer failures:") if  len(j)!=0 else print()
                 for i, j in enumerate(warnings): print("#"+str(i+1)+": "+j)
-                flattenreport = [i for sublist in report for i in sublist]
-                for i in flattenreport: print(i)
+                for i in report: print(i)
         else:
             pass
         
