@@ -1,6 +1,7 @@
 import pandas as pd
-from utils import score,reverse, complement, alignvis
+from utils import score,reverse, complement, alignvis, truncate
 ########Post Algorithm primer rating ########
+
 
 #for alignment only mode
 def alignout(results, bnmatr, bdict, namedata=None):
@@ -18,7 +19,7 @@ def alignout(results, bnmatr, bdict, namedata=None):
             Position: {int(result['start_position']), int(result['end_position'])}\n""")
 
 #post algorithm primer scoring, non align only mode
-def primerscore(alignmentset, metadb, bdict, mmmatr, convertd):
+def primerscore(alignmentset, metadb, bdict, mmmatr, convertd, html):
     metadf = pd.DataFrame(metadb, columns=["db_sequence_id","name","segment", "year"])
     metadf.set_index("db_sequence_id",)
    
@@ -50,7 +51,7 @@ threshold score for primer set #{setnum}")
             warnings.append(f"Probe {proid} has no alignments above \
 threshold score for primer set #{setnum}")
           
-        return "",warnings, ""
+        return "",warnings, "" if not html else {"entry": False,"name": f"Primer set #{setnum}"}
     
     
 #situation where a primer binds multiple times to the same sequence
@@ -60,16 +61,16 @@ threshold score for primer set #{setnum}")
     
     if not otfwd.empty:
         warnings.append(f"Forward primer {fwdid} has multiple binding \
-locations on genome sequence(s) {', '.join(str(i) for i in list(otfwd.db_sequence_id.values))}")
+locations on genome sequence(s) {', '.join(truncate(str(i)) for i in list(otfwd.db_sequence_name.values))}")
         fwd.drop_duplicates(subset="db_sequence_id", inplace=True)
 
     if not otrev.empty:
         warnings.append(f"Reverse primer {revid} has multiple binding \
-locations on genome sequence(s) {', '.join(str(i) for i in list(otrev.db_sequence_id.values))}")
+locations on genome sequence(s) {', '.join(truncate(str(i)) for i in list(otrev.db_sequence_name.values))}")
         rev.drop_duplicates(subset="db_sequence_id", inplace=True)
     if not otpro.empty:
         warnings.append(f"Probe {proid} has multiple binding \
-locations on genome sequence(s) {', '.join(str(i) for i in list(otpro.db_sequence_id.values))}")
+locations on genome sequence(s) {', '.join(truncate(str(i)) for i in list(otpro.db_sequence_name.values))}")
         pro.drop_duplicates(subset="db_sequence_id", inplace=True)
 
 #situation where primers do not bind to a certain sequences
@@ -81,26 +82,27 @@ locations on genome sequence(s) {', '.join(str(i) for i in list(otpro.db_sequenc
     failprimers = (fwdset|revset|proset) - (fwdset&revset&proset)
     faildf = (alignmentset.loc[alignmentset["db_sequence_id"].isin(failprimers)]).drop_duplicates(subset="db_sequence_id")
     
+    
     nbfwd = fullset-fwdset
     nbrev = fullset-revset
     nbpro = fullset-proset
 
-    nbfwddf = metadf.loc[metadf["db_sequence_id"].isin(nbfwd)].copy()
-    nbfwddf["report"] = nbfwddf.apply(lambda x: f"{x['db_sequence_id']} (segment {x['segment']}, year {x['year']})", axis=1)
-    nbrevdf = metadf.loc[metadf["db_sequence_id"].isin(nbrev)].copy()
-    nbrevdf["report"] = nbrevdf.apply(lambda x: f"{x['db_sequence_id']} (segment {x['segment']}, year {x['year']})", axis=1)
-    nbprodf = metadf.loc[metadf["db_sequence_id"].isin(nbpro)].copy()
-    nbprodf["report"] = nbprodf.apply(lambda x: f"{x['db_sequence_id']} (segment {x['segment']}, year {x['year']})", axis=1)
-
+        
     if len(nbfwd)!=0:
+        nbfwddf = metadf.loc[metadf["db_sequence_id"].isin(nbfwd)].copy()
+        nbfwddf["report"] = nbfwddf.apply(lambda x: f"{truncate(x['name'])} (segment {x['segment']}, year {x['year']})", axis=1)
         warnings.append(f"Forward primer {fwdid} failed to bind to \
 genome sequence(s) {', '.join(list(nbfwddf['report']))}")
         
     if len(nbrev)!=0:
+        nbrevdf = metadf.loc[metadf["db_sequence_id"].isin(nbrev)].copy()
+        nbrevdf["report"] = nbrevdf.apply(lambda x: f"{truncate(x['name'])} (segment {x['segment']}, year {x['year']})", axis=1)
         warnings.append(f"Reverse primer {revid} failed to bind to \
 genome sequence(s) {', '.join(list(nbrevdf['report']))}")
 
     if len(nbpro)!=0:
+        nbprodf = metadf.loc[metadf["db_sequence_id"].isin(nbpro)].copy()
+        nbprodf["report"] = nbprodf.apply(lambda x: f"{truncate(x['name'])} (segment {x['segment']}, year {x['year']})", axis=1)
         warnings.append(f"Probe {proid} failed to bind to \
 genome sequence(s) {', '.join(list(nbprodf['report']))}")
     
@@ -137,7 +139,11 @@ genome sequence(s) {', '.join(list(nbprodf['report']))}")
     totalgenomein = len(metadf)
     rawgenomesmatched = max(fwdmatch, revmatch, promatch)
     genomesafterorder = len(adjdf)
-    info = f"""Total genomes parsed: {totalgenomein}
+
+    results = alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict, mmmatr, convertd, html)
+
+    if not html:
+        info = f"""Total genomes parsed: {totalgenomein}
 Genome segment composition: 
 {segments['totalsegment'].to_string()} 
 
@@ -148,13 +154,32 @@ Segment composition of matches:
 {segments['matchedsegment'].to_string()}
 Segment composition of invalidated matches:
 {segments['invalidsegment'].to_string()}
-"""
+"""    
+        return info, warnings, results
     
-    results = alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict, mmmatr, convertd)
-    return info, warnings, results
+       
+    else:
+        primerdata = {
+            "entry": True,
+            "name": f"Primer set #{setnum}",
+            "total_genomes_parsed": totalgenomein,
+            "genome_segment_composition": segments['totalsegment'].to_dict(),
+            "raw_genomes_matched": rawgenomesmatched,
+            "valid_matches": genomesafterorder,
+            "match_segment_composition": segments['matchedsegment'].to_dict(),
+            "invalid_match_segment_composition": segments['invalidsegment'].to_dict(),
+
+            "failures": [],
+        
+        }
+        for i, j in enumerate(warnings): primerdata["failures"].append({"id": "#"+str(i+1), "message": j})
+        primerdata["primers"] = results
+
+        return primerdata
+    
 
 #create output for filtered primers, one entry per alignment rather than seq to save space
-def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict, mmmatr, convertd):
+def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict, mmmatr, convertd, html):
     results = []
 
 #fwd
@@ -169,8 +194,9 @@ def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict,
     fwddf = pd.DataFrame(fwdlist, columns = ["visual", "rating", "seq"]).set_index("seq")
     finalfwd = pd.concat([fwdg.set_index("db_alignment", drop=False), fwdc, fwddf], axis=1)
     fwdsum = finalfwd["count"].sum()
-    finalfwd["report"] = finalfwd.apply(lambda x: primerreport(x, fwdid, "F",fwdsum, fwd, bdict), axis=1)
-    results.append(list(finalfwd["report"]))
+    finalfwd["report"] = finalfwd.apply(lambda x: primerreport(x, fwdid, "F",fwdsum, fwd, bdict, html), axis=1)
+    for i in list(finalfwd["report"]):
+        results.append(i)
 
 #rev
     revg = rev.drop_duplicates(subset=["db_alignment"])
@@ -185,8 +211,9 @@ def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict,
     revdf = pd.DataFrame(revlist, columns = ["visual", "rating", "seq"]).set_index("seq")
     finalrev = pd.concat([revg.set_index("db_alignment", drop=False), revc, revdf], axis=1)
     revsum = finalrev["count"].sum()
-    finalrev["report"] = finalrev.apply(lambda x: primerreport(x, revid, "R", revsum, rev, bdict), axis=1)
-    results.append(list(finalrev["report"]))
+    finalrev["report"] = finalrev.apply(lambda x: primerreport(x, revid, "R", revsum, rev, bdict, html), axis=1)
+    for i in list(finalrev["report"]):
+        results.append(i)
 
 #probe
     prog = pro.drop_duplicates(["db_alignment"])
@@ -200,23 +227,38 @@ def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict,
     prodf = pd.DataFrame(prolist, columns = ["visual", "rating", "seq"]).set_index("seq")
     finalpro = pd.concat([prog.set_index("db_alignment", drop=False), proc, prodf], axis=1)
     prosum = finalpro["count"].sum()
-    finalpro["report"] = finalpro.apply(lambda x: primerreport(x, proid, "P", prosum, pro, bdict), axis = 1)
-    results.append(list(finalpro["report"]))
-    
+    finalpro["report"] = finalpro.apply(lambda x: primerreport(x, proid, "P", prosum, pro, bdict, html), axis = 1)
+    for i in list(finalpro["report"]):
+        results.append(i)
     return results
     
 #create the string report for each alignment
-def primerreport(row, name, type, sum, df, bdict):
-    s = f"""\nName: {name} (Type: {type}) 
+def primerreport(row, name, type, sum, df, bdict, html):
+    if not html:
+        s = f"""\nName: {name} (Type: {type}) 
 Alignment Score: {row['score']}
 Primer Rating: {row['rating']}
 Query Alignment:    {reverse(complement(row['query_alignment'], bdict)) if type =="R" else row['query_alignment']}
                     {row['visual']}
 Database Alignment: {reverse(complement(row['db_alignment'], bdict)) if type =="R" else row["db_alignment"]}
 Database Sequence Prevalence: {row['count']} ({(row['count']/(sum))*100}%)
-Database Matches: {', '.join((df.loc[df['db_alignment']==row['db_alignment']])['db_sequence_id_year'].to_list())}
+Database Matches: {', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment']==row['db_alignment']])['db_sequence_name'].to_list()))}
 """
+    else: 
+        s = {
+            "name": name, 
+            "type": type, 
+            "alignment_score": row['score'],
+            "primer_rating": row['rating'],
+            "query_alignment": reverse(complement(row['query_alignment'], bdict)) if type =="R" else row['query_alignment'],
+            "visual": row['visual'],
+            "database_alignment": reverse(complement(row['db_alignment'], bdict)) if type =="R" else row["db_alignment"],
+            "prevalence": f"{row['count']} ({(row['count']/(sum))*100}%)",
+            "matches": ', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment']==row['db_alignment']])['db_sequence_name'].to_list()))
+        }
+
     return s
+
 
 #scoring based on mismatch type, 3 mismatches, two purpur,or one mm in critical region = high risk
 # anything more than 1 lowest mm in non-critical =moderate risk
