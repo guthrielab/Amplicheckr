@@ -1,17 +1,6 @@
 # Amplichekr: a qPCR Primer Checking Tool
-```text
-_______________________________________________________________________________________________________
- ______                      ___                __              __                    _          __     
-/\  _  \                    /\_ \    __        /\ \            /\ \                 /' \       /'__`\   
-\ \ \ \ \    ___ ___   _____\//\ \  /\_\    ___\ \ \___      __\ \ \/'\   _ __     /\_, \     /\ \/\ \  
- \ \  __ \ /' __` __`\/\ '__`\\ \ \ \/\ \  /'___\ \  _ `\  /'__`\ \ , <  /\`'__\   \/_/\ \    \ \ \ \ \ 
-  \ \ \/\ \/\ \/\ \/\ \ \ \ \ \\_\ \_\ \ \/\ \__/\ \ \ \ \/\  __/\ \ \\`\\ \ \/       \ \ \  __\ \ \_\ \
-   \ \_\ \_\ \_\ \_\ \_\ \ ,__//\____\\ \_\ \____\\ \_\ \_\ \____\\ \_\ \_\ \_\        \ \_\/\_\\ \____/
-    \/_/\/_/\/_/\/_/\/_/\ \ \/ \/____/ \/_/\/____/ \/_/\/_/\/____/ \/_/\/_/\/_/  _______\/_/\/_/ \/___/ 
-                         \ \_\                                                  /\______\               
-                          \/_/                                                  \/______/               
-_______________________________________________________________________________________________________
-```
-## Introduction
-Amplichekr is a python script that performs "local" alignment of primers with genomes and scores them to validate amplicon efficiency.
 
+## Introduction
+Amplichekr is a python-based primer checking tool for influenza and hantavirus genomes with the ability to be used with sequences from any origin. 
+
+It achieves this through local alignment of primers and genomes with the Smith-Waterson algorithm followed by scoring using a set criteria.
