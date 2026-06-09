@@ -4,6 +4,7 @@ from matrices import *
 from parsers import *
 from aligner import *
 from scorer import *
+from jinja2 import Environment, FileSystemLoader
 
 thumbnail = r"""
 _______________________________________________________________________________________________________
@@ -65,7 +66,20 @@ def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr,
                 for i, j in enumerate(warnings): print("#"+str(i+1)+": "+j)
                 for i in report: print(i)
         else:
-            pass
+            htmldata = {"primer_sets":[]}
+            for i, j in enumerate(alignresults):
+                data = primerscore(j, metadb, bdict, mmmatr, convertd, html)
+                htmldata["primer_sets"].append(data)
+
+            # with open("usethisdata.txt", "w") as f:
+            #     print(htmldata, file=f)
+            env = Environment(loader=FileSystemLoader("."))
+            template = env.get_template("dashboard.html.j2")
+
+            templatehtml = template.render(primer_sets=htmldata["primer_sets"])
+
+            with open("dashboard.html", "w", encoding="utf-8") as f:
+                f.write(templatehtml)
         
 
         
