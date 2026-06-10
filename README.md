@@ -34,7 +34,7 @@ For each primer set:
 3. Each primer sequence is split into identical length kmers and used as a query in the index (reverse primers are transformed to reverse complement)
 4. Once a match is found in the index, a window is set at the matched genome and a matrix is built between the primer and genome window
 5. If maximum score meets threshold (no more than 4 mismatches) perform traceback
-6. Pass alignment info to either align output or primer scoring
+6. Pass alignment info to either align output or primer scoring and filtering
 7. Output findings to stdout or write in html report
 
 ### Initial alignment scoring
@@ -61,15 +61,22 @@ N   2   2   2   2   2   2   2   2   2   2   2   2   2   2   2
 Scoring is conducted similarly to GISAID's primerchecker tool and follows guidelines from [Deustch et. al 2024](https://academic.oup.com/bioinformatics/article/40/11/btae657/7876261) ([Viral Primer](https://viralprimer.elte.hu/)).
 
 These guidelines categorize primers into three grades:
-1. High Risk:
+#### 1. High Risk:
 - At least 1 mismatch in critical regions (Forward and reverse: 5 bases from 3' end; Probe: central area 5 bases in from both sides)
 - and/or 3 mismatches outside critical regions or 2 worst-case mismatches (purine-purine, ex. A-A, A-G, R-R pairings)
-2. Moderate Risk:
+#### 2. Moderate Risk:
 - No mismatch in critical regions
 - At least 1 mismatch of moderate and above severity (purine-purine, pyrmidine-pyrmidine) outside critical regions
-3. No Risk:
+#### 3. No Risk:
 - No mismatch in critical regions
 - Only 1 mismatch of low severity (purine-pyrmidine, ex. A-C) or perfect match
+
+### Filtering and warnings
+A set is considered "failing" for a genome when at least 1 primer fails to align to the genome, or the primers align in the incorrect order (correct order: forward < probe < reverse).
+
+A warning message is included in the output detailing which primer in which set caused the failure.
+
+However, for cases with multiple alignments to the genome, the duplicate alignment is dropped and the set continues as normal, but a warning message is included detailing which primer has multiple alignments on which genome.
 
 ## Input 
 ### Required parameters
@@ -95,6 +102,11 @@ Any file in FASTA format is able to be parsed. However, Genbank/NCBI formats wor
 
 The program will additionally record the segment type for influenza ("HA", "MP", "NA) and hantavirus ("segment S", "segment M", "segment L") and record the year of the entry if present. If not found, the entry is replaced by "unknown" for the segment and/or year.
 
+## Output
+In contrast with other primer checking tools, this tool groups matches by the matching sequence rather by each matching genome. 
+
+To clarify, if a primer matches to a sequence `GCAGCTGTGTCTACATTGGAGAC`, instead of outputting matching genomes one by one the tool groups by which genomes contain this sequence and provides useful information such as their name and prevalence in the uploaded sets. If, for example, 5 genomes had a single mismatch at the 3' terminal region while 10 genomes were perfect matches, the tool will output two entries, with "high risk" at 5 (33%) and "no risk" at 10 (67%).
+
 ## Test Data
 The sequences under [testdata_hantavirus](https://github.com/guthrielab/Amplicheckr/blob/main/testdata_hantavirus/info.md) are the 27 most recent andes hantavirus genomes on NCBI. 
 
@@ -111,6 +123,7 @@ python3 main.py -f fna -v hantavirus .\testdata_hantavirus\tprimerhanta.csv .\te
 ```
 python3 main.py -v hantavirus .\testdata_hantavirus\tprimerhanta.csv .\testdata_hantavirus\tgenome.fna -H
 ```
+Find this report by opening "dashboard.html" in the pwd or specified output location
 ### Align only mode 
 ```
 python3 main.py -v hantavirus .\testdata_hantavirus\tprimerhanta.csv .\testdata_hantavirus\tgenome.fna -a
