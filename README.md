@@ -30,7 +30,9 @@ Amplichekr should be functional on all systems with python installed.
 The general workflow is as follows:
 1. Parse primer csv and genome fasta
 2. Create index of kmers for all genomes
+
 For each primer set:
+
 3. Each primer sequence is split into identical length kmers and used as a query in the index (reverse primers are transformed to reverse complement)
 4. Once a match is found in the index, a window is set at the matched genome and a matrix is built between the primer and genome window
 5. If maximum score meets threshold (no more than 4 mismatches) perform traceback
@@ -38,7 +40,7 @@ For each primer set:
 7. Output findings to stdout or write in html report
 
 ### Initial alignment scoring
-Alignment matches are scored with the following matrix, using IUPAC nucleotide names for degenerate bases.
+Alignment matches are scored with the following matrix, using IUPAC nucleotide names for degenerate bases and gap score of -6.
 ```
     A   T   G   C   S   W   R   Y   K   M   B   V   H   D   N
 A   2  -3  -3  -3  -3   2   2  -3  -3   2  -3   2   2   2   2
@@ -105,7 +107,9 @@ The program will additionally record the segment type for influenza ("HA", "MP",
 ## Output
 In contrast with other primer checking tools, this tool groups matches by the matching sequence rather by each matching genome. 
 
-To clarify, if a primer matches to a sequence `GCAGCTGTGTCTACATTGGAGAC`, instead of outputting matching genomes one by one the tool groups by which genomes contain this sequence and provides useful information such as their name and prevalence in the uploaded sets. If, for example, 5 genomes had a single mismatch at the 3' terminal region while 10 genomes were perfect matches, the tool will output two entries, with "high risk" at 5 (33%) and "no risk" at 10 (67%).
+For example, if a primer matches to the sequence `GCAGCTGTGTCTACATTGGAGAC`, instead of outputting the matching genomes one by one, the tool groups by which genomes contain this sequence and instead provides the name and prevalence in the total uploaded sets. If, for example, 5 genomes had a single mismatch at the 3' terminal region while 10 genomes were perfect matches, the tool will output two entries, with "high risk" at 5 (33%) and "no risk" at 10 (67%).
+
+The prevalence count accounts for prevalence of the segment matched, but if the segment name could not be parsed or genomes from an origin other than influenza or hantavirus are used it will instead count over total entries.
 
 ## Test Data
 The sequences under [testdata_hantavirus](https://github.com/guthrielab/Amplicheckr/blob/main/testdata_hantavirus/info.md) are the 27 most recent andes hantavirus genomes on NCBI. 
