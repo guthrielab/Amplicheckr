@@ -108,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("-H", "--html", action="store_true",
                         help="Activate html report generator (silences stdout)")
     parser.add_argument("-o", "--output", 
-                        help="Make html report instead of stdout, enter file name")
+                        help="Specify directory for html output location")
     args = parser.parse_args()
 
     primerin = args.primers
