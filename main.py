@@ -116,6 +116,7 @@ if __name__ == "__main__":
     mode = args.virus
     k = args.kmer
     html = args.html
+    outputdir = args.output
     if args.hello:
         print("hi")
     
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     t0 = time.time_ns()
     
     
-    amplichekr(primerset, qudb, ntdb, index, k, metadb,bdict, convertd, bnmatr, mmmatr, args.align, html)
+    amplichekr(primerset, qudb, ntdb, index, k, metadb,bdict, convertd, bnmatr, mmmatr, outputdir, args.align, html)
 
     tf = time.time_ns()
     print (f"finished in {(tf-t0)//1000000}ms")
