@@ -28,7 +28,7 @@ primers/sequences along genomes to score and validate amplicon efficiency.
 np.set_printoptions(legacy="1.25")
 
 ###### main function, run all, output#####
-def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr, mmmatr, alignonly=False, html=None):
+def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr, mmmatr, output="",alignonly=False, html=None):
     try:
         count=1
         alignresults = []
@@ -71,14 +71,13 @@ def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr,
                 data = primerscore(j, metadb, bdict, mmmatr, convertd, html)
                 htmldata["primer_sets"].append(data)
 
-            # with open("usethisdata.txt", "w") as f:
-            #     print(htmldata, file=f)
             env = Environment(loader=FileSystemLoader("."))
             template = env.get_template("dashboard.html.j2")
 
             templatehtml = template.render(primer_sets=htmldata["primer_sets"])
-
-            with open("dashboard.html", "w", encoding="utf-8") as f:
+            if not os.path.exists(os.path.join(output, "")):
+                os.makedirs(output)
+            with open(os.path.join(output, "dashboard.html"), "w", encoding="utf-8") as f:
                 f.write(templatehtml)
         
 
