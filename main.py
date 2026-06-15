@@ -28,7 +28,7 @@ primers/sequences along genomes to score and validate amplicon efficiency.
 np.set_printoptions(legacy="1.25")
 
 ###### main function, run all, output#####
-def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr, mmmatr, output="",alignonly=False, html=None):
+def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr, mmmatr, output,alignonly=False, html=None):
     try:
         count=1
         alignresults = []
@@ -106,7 +106,7 @@ if __name__ == "__main__":
                         help="Only perform alignment and skip grading.")
     parser.add_argument("-H", "--html", action="store_true",
                         help="Activate html report generator (silences stdout)")
-    parser.add_argument("-o", "--output", 
+    parser.add_argument("-o", "--output", default="", 
                         help="Specify directory for html output location")
     args = parser.parse_args()
 
