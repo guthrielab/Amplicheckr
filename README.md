@@ -11,14 +11,14 @@ Download the repository:
 git clone https://github.com/guthrielab/Amplicheckr
 ```
 Amplichekr uses numerous python packages detailed in [amplichekr.toml](https://github.com/guthrielab/Amplicheckr/blob/main/amplichekr.toml) that are not installed with python. 
-This includes:
+Requirements include:
 
  - numpy
- - pandas
+ - pandas v2.3+
  - biopython
  - jinja2
 
-Ensure the packages are installed by running 
+Ensure the packages are installed and up-to-date by running 
 ```
 pip list
 ```
