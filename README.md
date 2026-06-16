@@ -105,12 +105,14 @@ Any file in FASTA format is able to be parsed. However, Genbank/NCBI formats wor
 The program will additionally record the segment type for influenza ("HA", "MP", "NA) and hantavirus ("segment S", "segment M", "segment L") and record the year of the entry if present. If not found, the entry is replaced by "unknown" for the segment and/or year.
 
 ## Output
+### Format
 In contrast with other primer checking tools, this tool groups matches by the matching sequence rather by each matching genome. 
 
 For example, if a primer matches to the sequence `GCAGCTGTGTCTACATTGGAGAC`, instead of outputting the matching genomes one by one, the tool groups by which genomes contain this sequence and instead provides the name and prevalence in the total uploaded sets. If, for example, 5 genomes had a single mismatch at the 3' terminal region while 10 genomes were perfect matches, the tool will output two entries, with "high risk" at 5 (33%) and "no risk" at 10 (67%).
 
 The prevalence count accounts for prevalence of the segment matched, but if the segment name could not be parsed or genomes from an origin other than influenza or hantavirus are used it will instead count over total entries.
-
+### Melting temperature
+Melting temperature is calculated with nearest neighbour thermodynamics by the biopython [MeltingTemp](https://biopython.org/docs/1.76/api/Bio.SeqUtils.MeltingTemp.html) module. Since the effect on melting temperature is experimentally derived, thermodynamic data for certain adjacent mismatches are not available. In the case where there is no data, a warning message will be printed instead of the melting temperature.
 ## Test Data
 The sequences under [testdata_hantavirus](https://github.com/guthrielab/Amplicheckr/blob/main/testdata_hantavirus/info.md) are the 27 most recent andes hantavirus genomes on NCBI. 
 
