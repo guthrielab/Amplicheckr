@@ -1,5 +1,6 @@
 import pandas as pd
 from utils import score,reverse, complement, alignvis, truncate
+from Bio.SeqUtils import MeltingTemp as mt
 ########Post Algorithm primer rating ########
 
 
@@ -234,13 +235,21 @@ def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict,
     
 #create the string report for each alignment
 def primerreport(row, name, type, sum, df, bdict, html):
+    qalignment = reverse(complement(row['query_alignment'], bdict)) if type =="R" else row['query_alignment']
+    dalignment = reverse(complement(row['db_alignment'], bdict)) if type =="R" else row["db_alignment"]
+    degreesign = u"\N{DEGREE SIGN}"
+    tm = ""
+    try:
+        tm = '%0.2f' % mt.Tm_NN(qalignment,c_seq=complement(dalignment, bdict))
+    except ValueError:
+        tm = "No thermodynamic data available for present mismatches"
     if not html:
         s = f"""\nName: {name} (Type: {type}) 
-Alignment Score: {row['score']}
+Melting Temperature: {tm} {degreesign}C
 Primer Rating: {row['rating']}
-Query Alignment:    {reverse(complement(row['query_alignment'], bdict)) if type =="R" else row['query_alignment']}
+Query Alignment:    {qalignment}
                     {row['visual']}
-Database Alignment: {reverse(complement(row['db_alignment'], bdict)) if type =="R" else row["db_alignment"]}
+Database Alignment: {dalignment}
 Database Sequence Prevalence: {row['count']} ({(row['count']/(sum))*100}%)
 Database Matches: {', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment']==row['db_alignment']])['db_sequence_name'].to_list()))}
 """
@@ -248,16 +257,17 @@ Database Matches: {', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment
         s = {
             "name": name, 
             "type": type, 
-            "alignment_score": row['score'],
+            "melting_temperature": f"{tm} {degreesign}C",
             "primer_rating": row['rating'],
-            "query_alignment": reverse(complement(row['query_alignment'], bdict)) if type =="R" else row['query_alignment'],
+            "query_alignment": qalignment,
             "visual": row['visual'],
-            "database_alignment": reverse(complement(row['db_alignment'], bdict)) if type =="R" else row["db_alignment"],
+            "database_alignment": dalignment,
             "prevalence": f"{row['count']} ({(row['count']/(sum))*100}%)",
             "matches": ', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment']==row['db_alignment']])['db_sequence_name'].to_list()))
         }
 
     return s
+
 
 
 #scoring based on mismatch type, 3 mismatches, two purpur,or one mm in critical region = high risk
