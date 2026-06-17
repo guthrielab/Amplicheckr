@@ -105,10 +105,12 @@ Any file in FASTA format is able to be parsed. However, Genbank/NCBI formats wor
 The program will additionally record the segment type for influenza ("HA", "MP", "NA) and hantavirus ("segment S", "segment M", "segment L") and record the year of the entry if present. If not found, the entry is replaced by "unknown" for the segment and/or year.
 
 ## Output
-### Format
-In contrast with other primer checking tools, this tool groups matches by the matching sequence rather by each matching genome. 
+### Failures
+Any genome considered failing due to failure of at least 1 primer to align will be excluded from the list of matches, regardless if the specific primer was able to align to the genome. For primers with more than 1 alignment on a specific genome, a warning will be printed and duplicate alignment dropped but set will still be printed if no other issues are present.
 
-For example, if a primer matches to the sequence `GCAGCTGTGTCTACATTGGAGAC`, instead of outputting the matching genomes one by one, the tool groups by which genomes contain this sequence and instead provides the name and prevalence in the total uploaded sets. If, for example, 5 genomes had a single mismatch at the 3' terminal region while 10 genomes were perfect matches, the tool will output two entries, with "high risk" at 5 (33%) and "no risk" at 10 (67%).
+Additionally, a primer set is checked for validation when at least 1 primer aligns to the genome. Therefore, if 1 primer aligns to another segment, the program will report this as failures of the others to bind.
+### Format
+In contrast with other primer checking tools, this tool groups matches by the matching sequence rather by each matching genome. For example, if a primer matches to the sequence `GCAGCTGTGTCTACATTGGAGAC`, instead of outputting the matching genomes one by one, the tool groups by which genomes contain this sequence and instead provides the name and prevalence in the total uploaded sets. If, for example, 5 genomes had a single mismatch at the 3' terminal region while 10 genomes were perfect matches, the tool will output two entries, with "high risk" at 5 (33%) and "no risk" at 10 (67%).
 
 The prevalence count accounts for prevalence of the segment matched, but if the segment name could not be parsed or genomes from an origin other than influenza or hantavirus are used it will instead count over total entries.
 ### Melting temperature
