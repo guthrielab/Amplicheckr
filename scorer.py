@@ -3,7 +3,6 @@ from utils import score,reverse, complement, alignvis, truncate
 from Bio.SeqUtils import MeltingTemp as mt
 ########Post Algorithm primer rating ########
 
-
 #for alignment only mode
 def alignout(results, bnmatr, bdict, namedata=None):
     namedata = namedata or ["My Primer", "Unknown"]
@@ -11,7 +10,7 @@ def alignout(results, bnmatr, bdict, namedata=None):
     for index, result in top.iterrows():
         align = alignvis(result['query_alignment'], result['db_alignment'], bnmatr)
         print(f"""\n\tPrimer: {namedata[0]}  (Type: {namedata[1]})
-            Score: {result['score']}
+            Score: {result['score']} (max {len(result['query_alignment'])*2})
             Query Alignment:    {reverse(complement(result['query_alignment'], bdict)) if namedata[1] =='R' else result['query_alignment']}
                                 {reverse(align) if namedata[1]=='R' else align}
             Database Alignment: {reverse(complement(result['db_alignment'], bdict)) if namedata[1] =='R' else result['db_alignment']}
@@ -22,8 +21,10 @@ def alignout(results, bnmatr, bdict, namedata=None):
 #post algorithm primer scoring, non align only mode
 def primerscore(alignmentset, metadb, bdict, mmmatr, convertd, html):
     metadf = pd.DataFrame(metadb, columns=["db_sequence_id","name","segment", "year"])
-    metadf.set_index("db_sequence_id",)
-   
+    
+    
+    metadf.set_index("db_sequence_id",inplace=True, drop=False)
+    
     warnings = []
     #seperate full per set into individual primer types (name, id)
     fwd = (alignmentset[alignmentset["type"]=="F"]).copy()
@@ -118,6 +119,7 @@ genome sequence(s) {', '.join(list(nbprodf['report']))}")
 
     #Verify the correct order exists, of fwd < probe < rev
     success = fwdset & revset & proset
+    
     primersuccess = alignmentset.loc[alignmentset['db_sequence_id'].isin(success)]
     verifyorder = [pd.Series(list(success)), 
                    primersuccess.loc[primersuccess["type"]=="F", ["end_position"]].reset_index(drop=True),
@@ -126,13 +128,26 @@ genome sequence(s) {', '.join(list(nbprodf['report']))}")
                    primersuccess.loc[primersuccess["type"]=="R", ["start_position"]].reset_index(drop=True)]
     a = pd.concat(verifyorder, axis=1, ignore_index=True)
     a.columns = ["db_sequence_id", "fend", "pstar", "pend", "rstar"]
+    
     a.set_index("db_sequence_id", inplace=True)
+   
     adjdf = a.query("fend<pstar and pstar<pend and pend<rstar")
-
+    if len(a)-len(adjdf)!=0:
+        invalidorder = a.index.difference(adjdf.index)
+        
+        invaliddf = metadf.loc[metadf["db_sequence_id"].isin(invalidorder)].copy()
+        invaliddf.set_index("db_sequence_id")
+        invaliddf["report"] = invaliddf.apply(lambda x: f"{truncate(x['name'])} (segment {x['segment']}, year {x['year']})", axis=1)
+        tempdf = pd.concat([invaliddf["report"],a.loc[invalidorder]], axis=1)
+        
+        warnings.append(f"Primer set #{setnum} has bad order to \
+genome sequence(s) \n{tempdf.to_string()}")
+    
     #update each primers to only include filtered primers/alignments
     fwd = fwd.loc[fwd["db_sequence_id"].isin(adjdf.index.values)]
     rev = rev.loc[rev["db_sequence_id"].isin(adjdf.index.values)]
     pro = pro.loc[pro["db_sequence_id"].isin(adjdf.index.values)]
+    
 
     #info count data
     segments = pd.concat([metadf["segment"].value_counts(), fwd["db_segment"].value_counts(), faildf["db_segment"].value_counts()], axis=1)
@@ -140,7 +155,7 @@ genome sequence(s) {', '.join(list(nbprodf['report']))}")
     totalgenomein = len(metadf)
     rawgenomesmatched = max(fwdmatch, revmatch, promatch)
     genomesafterorder = len(adjdf)
-
+    
     results = alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict, mmmatr, convertd, html)
 
     if not html:
@@ -182,10 +197,11 @@ Segment composition of invalidated matches:
 #create output for filtered primers, one entry per alignment rather than seq to save space
 def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict, mmmatr, convertd, html):
     results = []
-
+    if fwd.empty or rev.empty or pro.empty:
+        return []
 #fwd
     fwdlist = []
-    fwdg = fwd.drop_duplicates(subset=["db_alignment"])
+    fwdg = fwd.drop_duplicates(subset=["db_alignment"]).copy()
     fwdc = fwd["db_alignment"].value_counts()
     fwdrepr = fwdg["db_alignment"]
     for i in list(fwdrepr):
@@ -200,7 +216,7 @@ def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict,
         results.append(i)
 
 #rev
-    revg = rev.drop_duplicates(subset=["db_alignment"])
+    revg = rev.drop_duplicates(subset=["db_alignment"]).copy()
     revc = rev["db_alignment"].value_counts()
     revrepr = revg["db_alignment"]
     revlist = []
@@ -217,7 +233,7 @@ def alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict,
         results.append(i)
 
 #probe
-    prog = pro.drop_duplicates(["db_alignment"])
+    prog = pro.drop_duplicates(["db_alignment"]).copy()
     proc = pro["db_alignment"].value_counts()
     prorepr = prog["db_alignment"]
     prolist = []
@@ -240,12 +256,12 @@ def primerreport(row, name, type, sum, df, bdict, html):
     degreesign = u"\N{DEGREE SIGN}"
     tm = ""
     try:
-        tm = '%0.2f' % mt.Tm_NN(qalignment,c_seq=complement(dalignment, bdict))
+        tm = f"{'%0.2f' % mt.Tm_NN(qalignment,c_seq=complement(dalignment, bdict))} {degreesign}C"
     except ValueError:
         tm = "No thermodynamic data available for present mismatches"
     if not html:
         s = f"""\nName: {name} (Type: {type}) 
-Melting Temperature: {tm} {degreesign}C
+Melting Temperature: {tm}
 Primer Rating: {row['rating']}
 Query Alignment:    {qalignment}
                     {row['visual']}
@@ -267,6 +283,9 @@ Database Matches: {', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment
         }
 
     return s
+
+
+
 
 
 
