@@ -75,7 +75,7 @@ def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr,
             template = env.get_template("dashboard.html.j2")
 
             templatehtml = template.render(primer_sets=htmldata["primer_sets"])
-            if not os.path.exists(os.path.join(output, "")):
+            if (not os.path.exists(os.path.join(output, "")) and output):
                 os.makedirs(output)
             with open(os.path.join(output, "dashboard.html"), "w", encoding="utf-8") as f:
                 f.write(templatehtml)
