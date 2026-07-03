@@ -1,5 +1,10 @@
 # Amplichekr: a qPCR Primer Checking Tool
 
+#### Amplichekr is available as an executable app too (Windows only)!
+Google Drive: [![App]()](https://drive.google.com/drive/folders/1AF4eis496kbvIrWHmwempzpfSf1e5srI?usp=drive_link)
+
+No command line needed. Download the files from the drive (ensure the .j2 file is included for html output), select your files and run! 
+
 ## Introduction
 Amplichekr is a python based primer checking tool for influenza and hantavirus genomes with the capability for sequences and primers of any origin. 
 
