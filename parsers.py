@@ -42,13 +42,8 @@ def parsedb(path=os.getcwd(), fname="", fext=None, mode = "influenza"):
                 temp = [count, metadata]
                 #[genome#, >line, segment, year]
                 if mode=="influenza" or mode=="i":
-                    if "HA" in dict[metadata].description:
-                        temp.append("HA")
-                    elif "MP" in dict[metadata].description:
-                        temp.append("MP")
-                    elif "NA" in dict[metadata].description:
-                        temp.append("NA")
-                    else: temp.append("unknown")
+                    segment = re.findall(r'\b(HA|NA|MP|PA|NP|NS|PB1|PB2)\b', dict[metadata].description)
+                    temp.append(segment[0] if len(segment)==1 else "unknown")
                 elif mode=="hantavirus" or mode=="h":
                     if "segment S" in dict[metadata].description:
                         temp.append("S")
@@ -62,7 +57,7 @@ def parsedb(path=os.getcwd(), fname="", fext=None, mode = "influenza"):
                 #find the year
                 year = re.findall(r'(?<!\d)\d{4}(?!\d)', dict[metadata].description)
                 posyear = [i for i in year if 1990 <= int(i) <=2035]
-                temp.append(posyear[0]) if len(posyear)==1 else temp.append("unknown")
+                temp.append(posyear[0] if len(posyear)==1 else "unknown")
                 
                 metadb.append(temp)
                 count+=1
