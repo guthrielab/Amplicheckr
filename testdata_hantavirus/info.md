@@ -19,3 +19,5 @@ python3 main.py -v hantavirus .\testdata_hantavirus\tprimerhanta.csv .\testdata_
 Genomes are the 27 most recent entries on NCBI for andes hantavirus. 
 
 Note that entries [OQ09224(3-5)](https://www.ncbi.nlm.nih.gov/nuccore/OQ092243) are from a different strain known as VARS/22-01 and are intentionally included to show an example of what the warning messages look like.
+
+Primer set #4 is 3 random sequences to serve as a negative control, or an example where a primer has no matches to any of the genomes.
