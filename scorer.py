@@ -52,9 +52,17 @@ threshold score for primer set #{setnum}")
         if -1 in pro.score.values:
             warnings.append(f"Probe {proid} has no alignments above \
 threshold score for primer set #{setnum}")
-          
-        return "",warnings, "" if not html else {"entry": False,"name": f"Primer set #{setnum}"}
-    
+       
+        if html:
+            return {
+                "entry": False,
+                "name": f"Primer set #{setnum}",
+                "failures": [{"id": "#" + str(i + 1), "message": w} for i, w in enumerate(warnings)],
+            }
+        
+        
+         
+        return "",warnings, "" 
     
 #situation where a primer binds multiple times to the same sequence
     otfwd = (fwd.loc[fwd.duplicated(subset=["db_sequence_id"])]).drop_duplicates(subset="db_sequence_id")
