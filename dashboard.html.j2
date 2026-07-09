@@ -78,7 +78,21 @@ body {
 /* Alignment cards */
 .alignment-card {
     border-top: 1px solid #eee;
-    padding: 10px 14px;
+    padding: 10px 14px 10px 12px;
+    border-left: 4px solid transparent;
+}
+
+.alignment-card.type-f {
+    border-left-color: #4a9eea;
+    background: #f8fbff;
+}
+.alignment-card.type-r {
+    border-left-color: #2fa968;
+    background: #f7fcf9;
+}
+.alignment-card.type-p {
+    border-left-color: #d9971f;
+    background: #fffaf2;
 }
 
 .aln-top {
@@ -96,14 +110,15 @@ body {
 /* Badges */
 .type-badge {
     font-size: 11px;
-    padding: 2px 6px;
+    font-weight: 600;
+    padding: 2px 8px;
     border-radius: 4px;
     background: #ddd;
 }
 
-.type-f { background: #cfe8ff; }
-.type-r { background: #d7f7e3; }
-.type-p { background: #ffe3b3; }
+.type-f { background: #cfe8ff; color: #17548c; }
+.type-r { background: #d7f7e3; color: #196b3f; }
+.type-p { background: #ffe3b3; color: #8a5c05; }
 
 .risk-badge {
     font-size: 11px;
@@ -160,6 +175,91 @@ body {
     font-size: 12px;
     color: #7a1a1a;
 }
+
+/* No-match warning card (score == -1, i.e. nomatch placeholder) */
+.nomatch-card {
+    border-top: 1px solid #eee;
+    padding: 10px 14px;
+    background: #fffaf0;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.nomatch-icon {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #a06400;
+}
+
+.nomatch-text {
+    font-size: 13px;
+    color: #6b4e00;
+}
+
+/* Segment report */
+.segment-report {
+    border-top: 1px solid #eee;
+    padding: 12px 14px;
+    background: #fbfbfa;
+}
+
+.segment-stats {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.segment-stats .stat-card {
+    min-width: 0;
+    flex: 1;
+}
+
+.segment-tables {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.segment-table-block {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+    flex: 1;
+    min-width: 160px;
+}
+
+.segment-table-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+table.segment-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+table.segment-table td {
+    padding: 3px 4px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+table.segment-table td.segment-count {
+    text-align: right;
+    font-family: monospace;
+    color: #333;
+}
+
+.segment-table-empty {
+    font-size: 12px;
+    color: #999;
+}
 </style>
 
 </head>
@@ -182,18 +282,54 @@ body {
     </div>
 </div>
 
-{% macro render_primer(p) %}
+{% macro segval(v) -%}
+{{ v|int if v == v else 0 }}
+{%- endmacro %}
+
+{% macro segment_table(title, composition) %}
+<div class="segment-table-block">
+    <div class="segment-table-title">{{ title }}</div>
+    {% if composition %}
+    <table class="segment-table">
+        {% for seg, count in composition.items() %}
+        <tr>
+            <td>{{ seg }}</td>
+            <td class="segment-count">{{ segval(count) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <div class="segment-table-empty">No data</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_primer(p, setnum) %}
+
+{% if p.score == -1 %}
+
+{% set type_label = {'f': 'Forward primer', 'r': 'Reverse primer', 'p': 'Probe'}.get(p.type|lower, 'Primer') %}
+
+<div class="nomatch-card">
+    <div class="nomatch-icon">&#9888;</div>
+    <div class="nomatch-text">
+        {{ type_label }} <span class="primer-name">{{ p.id }}</span> has no alignments above threshold score for primer set #{{ setnum }}.
+    </div>
+</div>
+
+{% else %}
 
 {% set mismatches = p.visual.count('X') %}
+{% set type_label = {'f': 'Forward', 'r': 'Reverse', 'p': 'Probe'}.get(p.type|lower, p.type) %}
 
-<div class="alignment-card">
+<div class="alignment-card type-{{ p.type|lower }}">
 
     <div class="aln-top">
 
         <span class="primer-name">{{ p.name }}</span>
 
         <span class="type-badge type-{{ p.type|lower }}">
-            {{ p.type }}
+            {{ type_label }}
         </span>
 
         <span class="risk-badge {% if p.primer_rating == 'High Risk' %}risk-high{% else %}risk-no{% endif %}">
@@ -223,12 +359,30 @@ DB    : {{ p.database_alignment }}
 
 </div>
 
+{% endif %}
+
 {% endmacro %}
 
 
 {% for ps in primer_sets %}
 
+{% set setnum = loop.index %}
+
 <div class="primer-set">
+
+    {% if ps.entry is defined and not ps.entry %}
+
+    <div class="set-header">
+        <span class="set-num">{{ ps.name }}</span>
+        <span class="status-err">✕ No data</span>
+    </div>
+
+    <div class="failure-banner">
+        <div class="failure-label">No Data</div>
+        <div class="failure-item">No sequences were found above the score threshold for {{ ps.name }}.</div>
+    </div>
+
+    {% else %}
 
     <div class="set-header">
         <span class="set-num">{{ ps.name }}</span>
@@ -249,9 +403,34 @@ DB    : {{ p.database_alignment }}
     </div>
     {% endif %}
 
+    <div class="segment-report">
+        <div class="segment-stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Genomes Parsed</div>
+                <div class="stat-value">{{ ps.total_genomes_parsed }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Raw Genomes Matched</div>
+                <div class="stat-value">{{ ps.raw_genomes_matched }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Valid Matches</div>
+                <div class="stat-value">{{ ps.valid_matches }}</div>
+            </div>
+        </div>
+
+        <div class="segment-tables">
+            {{ segment_table("Genome Segment Composition", ps.genome_segment_composition) }}
+            {{ segment_table("Matched Segment Composition", ps.match_segment_composition) }}
+            {{ segment_table("Invalidated Match Composition", ps.invalid_match_segment_composition) }}
+        </div>
+    </div>
+
     {% for primer in ps.primers %}
-        {{ render_primer(primer) }}
+        {{ render_primer(primer, setnum) }}
     {% endfor %}
+
+    {% endif %}
 
 </div>
 
