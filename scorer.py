@@ -281,7 +281,7 @@ Database Matches: {', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment
         s = {
             "name": name, 
             "type": type, 
-            "melting_temperature": f"{tm} {degreesign}C",
+            "melting_temperature": f"{tm}",
             "primer_rating": row['rating'],
             "query_alignment": qalignment,
             "visual": row['visual'],
