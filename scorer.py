@@ -52,7 +52,7 @@ threshold score for primer set #{setnum}")
         if -1 in pro.score.values:
             warnings.append(f"Probe {proid} has no alignments above \
 threshold score for primer set #{setnum}")
-       
+        
         if html:
             return {
                 "entry": False,
@@ -60,9 +60,8 @@ threshold score for primer set #{setnum}")
                 "failures": [{"id": "#" + str(i + 1), "message": w} for i, w in enumerate(warnings)],
             }
         
-        
-         
         return "",warnings, "" 
+    
     
 #situation where a primer binds multiple times to the same sequence
     otfwd = (fwd.loc[fwd.duplicated(subset=["db_sequence_id"])]).drop_duplicates(subset="db_sequence_id")
@@ -129,15 +128,12 @@ genome sequence(s) {', '.join(list(nbprodf['report']))}")
     success = fwdset & revset & proset
     
     primersuccess = alignmentset.loc[alignmentset['db_sequence_id'].isin(success)]
-    verifyorder = [pd.Series(list(success)), 
-                   primersuccess.loc[primersuccess["type"]=="F", ["end_position"]].reset_index(drop=True),
-                   primersuccess.loc[primersuccess["type"]=="P", ["start_position"]].reset_index(drop=True),
-                   primersuccess.loc[primersuccess["type"]=="P", ["end_position"]].reset_index(drop=True), 
-                   primersuccess.loc[primersuccess["type"]=="R", ["start_position"]].reset_index(drop=True)]
-    a = pd.concat(verifyorder, axis=1, ignore_index=True)
-    a.columns = ["db_sequence_id", "fend", "pstar", "pend", "rstar"]
-    
-    a.set_index("db_sequence_id", inplace=True)
+    f_pos = primersuccess.loc[primersuccess["type"]=="F"].set_index("db_sequence_id")["start_position"].rename("fend")
+    p_start = primersuccess.loc[primersuccess["type"]=="P"].set_index("db_sequence_id")["start_position"].rename("pstar")
+    p_end = primersuccess.loc[primersuccess["type"]=="P"].set_index("db_sequence_id")["end_position"].rename("pend")
+    r_end = primersuccess.loc[primersuccess["type"]=="R"].set_index("db_sequence_id")["end_position"].rename("rstar")
+
+    a = pd.concat([f_pos, p_start, p_end, r_end], axis=1)
    
     adjdf = a.query("fend<pstar and pstar<pend and pend<rstar")
     if len(a)-len(adjdf)!=0:
@@ -161,7 +157,7 @@ genome sequence(s) \n{tempdf.to_string()}")
     segments = pd.concat([metadf["segment"].value_counts(), fwd["db_segment"].value_counts(), faildf["db_segment"].value_counts()], axis=1)
     segments.columns = ["totalsegment", "matchedsegment","invalidsegment"]
     totalgenomein = len(metadf)
-    rawgenomesmatched = max(fwdmatch, revmatch, promatch)
+    rawgenomesmatched = len(fullset)
     genomesafterorder = len(adjdf)
     
     results = alignrepr(fwd, fwdseq, fwdid, rev, revseq, revid, pro, proseq, proid, bdict, mmmatr, convertd, html)
