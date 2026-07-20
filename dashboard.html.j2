@@ -58,9 +58,34 @@ body {
 .set-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 10px 14px;
     background: #fafafa;
     cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+.set-header::-webkit-details-marker {
+    display: none;
+}
+.set-header::marker {
+    content: "";
+}
+
+.set-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.set-chevron {
+    display: inline-block;
+    font-size: 10px;
+    color: #999;
+    transition: transform 0.15s ease;
+}
+details[open] > .set-header .set-chevron {
+    transform: rotate(90deg);
 }
 
 .set-num {
@@ -368,14 +393,17 @@ DB    : {{ p.database_alignment }}
 
 {% set setnum = loop.index %}
 
-<div class="primer-set">
+<details class="primer-set" open>
 
     {% if ps.entry is defined and not ps.entry %}
 
-    <div class="set-header">
-        <span class="set-num">{{ ps.name }}</span>
+    <summary class="set-header">
+        <span class="set-header-left">
+            <span class="set-chevron">&#9656;</span>
+            <span class="set-num">{{ ps.name }}</span>
+        </span>
         <span class="status-err">✕ No data</span>
-    </div>
+    </summary>
 
     <div class="failure-banner">
         <div class="failure-label">No Data</div>
@@ -384,15 +412,18 @@ DB    : {{ p.database_alignment }}
 
     {% else %}
 
-    <div class="set-header">
-        <span class="set-num">{{ ps.name }}</span>
+    <summary class="set-header">
+        <span class="set-header-left">
+            <span class="set-chevron">&#9656;</span>
+            <span class="set-num">{{ ps.name }}</span>
+        </span>
 
         {% if ps.failures %}
             <span class="status-err">✕ {{ ps.failures|length }} failures</span>
         {% else %}
             <span class="status-ok">✓ Clean</span>
         {% endif %}
-    </div>
+    </summary>
 
     {% if ps.failures %}
     <div class="failure-banner">
@@ -432,7 +463,7 @@ DB    : {{ p.database_alignment }}
 
     {% endif %}
 
-</div>
+</details>
 
 {% endfor %}
 
