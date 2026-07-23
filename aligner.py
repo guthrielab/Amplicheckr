@@ -144,8 +144,24 @@ def blastn(database, query, index, k, bnmatr, convertd, namedata=None):
         sortp = pdata.drop_duplicates(subset=['start_position', 'db_sequence_id', 'db_alignment']) 
         top = sortp[sortp['query_alignment'].map(removed).map(len)==len(query)] 
         top = top[top['db_alignment'].map(removed).map(len)==len(query)]
-
         print("Alignment found")
+
+        if top.isempty:
+            s = "Insertion or deletion in primer region for "+namedata[0]
+            nomatch = ({'score': -1,
+                        'query_alignment': "",
+                        'db_alignment': "",
+                        'db_sequence_id': s,
+                        'db_sequence_name': "",
+                        'db_sequence_year': "",
+                        'db_sequence_id_year': "",
+                        'db_segment': "",
+                        'start_position': -1,
+                        'end_position': -1,
+                        'id': namedata[0],
+                        'type': namedata[1]})
+            top = pd.DataFrame(nomatch, index=[0])
+            print("Indel present")
     
-    return top #.nlargest(1, "score")
+    return top 
     
