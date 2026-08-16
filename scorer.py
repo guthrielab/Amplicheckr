@@ -4,11 +4,11 @@ from Bio.SeqUtils import MeltingTemp as mt
 ########Post Algorithm primer rating ########
 
 #for alignment only mode
-def alignout(results, bnmatr, bdict, namedata=None):
+def alignout(results, bnmatr, bdict, convertd, namedata=None):
     namedata = namedata or ["My Primer", "Unknown"]
     top = results
     for index, result in top.iterrows():
-        align = alignvis(result['query_alignment'], result['db_alignment'], bnmatr)
+        align = alignvis(result['query_alignment'], result['db_alignment'], bnmatr, convertd)
         print(f"""\n\tPrimer: {namedata[0]}  (Type: {namedata[1]})
             Score: {result['score']} (max {len(result['query_alignment'])*2})
             Query Alignment:    {reverse(complement(result['query_alignment'], bdict)) if namedata[1] =='R' else result['query_alignment']}
@@ -42,16 +42,16 @@ def primerscore(alignmentset, metadb, bdict, mmmatr, convertd, html):
 #situation where one primer has no entries as in no matches
     if -1 in alignmentset.score.values:
         if -1 in fwd.score.values:
-            warnings.append(f"Forward primer {fwdid} has no alignments above \
-threshold score for primer set #{setnum}")
+            msg = fwd.loc[fwd.score == -1, "db_sequence_id"].iloc[0]
+            warnings.append(f"Forward primer {fwdid}: {msg} (primer set #{setnum})")
            
         if -1 in rev.score.values:
-            warnings.append(f"Reverse primer {revid} has no alignments above \
-threshold score for primer set #{setnum}")
+            msg = rev.loc[rev.score == -1, "db_sequence_id"].iloc[0]
+            warnings.append(f"Reverse primer {revid}: {msg} (primer set #{setnum})")
            
         if -1 in pro.score.values:
-            warnings.append(f"Probe {proid} has no alignments above \
-threshold score for primer set #{setnum}")
+            msg = pro.loc[pro.score == -1, "db_sequence_id"].iloc[0]
+            warnings.append(f"Probe primer {proid}: {msg} (primer set #{setnum})")
         
         if html:
             return {
@@ -119,20 +119,20 @@ genome sequence(s) {', '.join(list(nbprodf['report']))}")
     fwd.set_index("db_sequence_id",inplace=True,drop=False)
     rev.set_index("db_sequence_id",inplace=True,drop=False)
     pro.set_index("db_sequence_id",inplace=True,drop=False)
-  
-    fwdmatch = len(fwdset)
-    revmatch = len(revset)
-    promatch = len(proset)
 
     #Verify the correct order exists, of fwd < probe < rev
     success = fwdset & revset & proset
     
     primersuccess = alignmentset.loc[alignmentset['db_sequence_id'].isin(success)]
-    f_pos = primersuccess.loc[primersuccess["type"]=="F"].set_index("db_sequence_id")["start_position"].rename("fend")
-    p_start = primersuccess.loc[primersuccess["type"]=="P"].set_index("db_sequence_id")["start_position"].rename("pstar")
-    p_end = primersuccess.loc[primersuccess["type"]=="P"].set_index("db_sequence_id")["end_position"].rename("pend")
-    r_end = primersuccess.loc[primersuccess["type"]=="R"].set_index("db_sequence_id")["end_position"].rename("rstar")
 
+    def removedup(df, ptype, col):
+        sub = df.loc[df["type"] == ptype].drop_duplicates(subset="db_sequence_id", keep="first")
+        return sub.set_index("db_sequence_id")[col]
+ 
+    f_pos = removedup(primersuccess, "F", "start_position").rename("fend")
+    p_start = removedup(primersuccess, "P", "start_position").rename("pstar")
+    p_end = removedup(primersuccess, "P", "end_position").rename("pend")
+    r_end = removedup(primersuccess, "R", "end_position").rename("rstar")
     a = pd.concat([f_pos, p_start, p_end, r_end], axis=1)
    
     adjdf = a.query("fend<pstar and pstar<pend and pend<rstar")
@@ -145,7 +145,7 @@ genome sequence(s) {', '.join(list(nbprodf['report']))}")
         tempdf = pd.concat([invaliddf["report"],a.loc[invalidorder]], axis=1)
         
         warnings.append(f"Primer set #{setnum} has bad order to \
-genome sequence(s) \n{tempdf.to_string()}")
+genome sequence(s) {', '.join(truncate(str(i)) for i in list(tempdf['report'].values))}")
     
     #update each primers to only include filtered primers/alignments
     fwd = fwd.loc[fwd["db_sequence_id"].isin(adjdf.index.values)]
@@ -262,7 +262,7 @@ def primerreport(row, name, type, sum, df, bdict, html):
     try:
         tm = f"{'%0.2f' % mt.Tm_NN(qalignment,c_seq=complement(dalignment, bdict))} {degreesign}C"
     except ValueError:
-        tm = "No thermodynamic data available for present mismatches"
+        tm = "No thermodynamic data available for present sequence"
     if not html:
         s = f"""\nName: {name} (Type: {type}) 
 Melting Temperature: {tm}
@@ -288,11 +288,6 @@ Database Matches: {', '.join(truncate(str(i)) for i in ((df.loc[df['db_alignment
 
     return s
 
-
-
-
-
-
 #scoring based on mismatch type, 3 mismatches, two purpur,or one mm in critical region = high risk
 # anything more than 1 lowest mm in non-critical =moderate risk
 def mmscore(seq1, seq2, cstar, cend, mmmatr, convertd):
@@ -313,6 +308,8 @@ def mmscore(seq1, seq2, cstar, cend, mmmatr, convertd):
             case -5:
                 mismatch +=1.5
                 vislist.append("-")
+            case _:
+                raise Exception("Number out of range")
     for i, j in zip(seq1[cstar:cend], seq2[cstar:cend]):
         ntscore = score(i, j, mmmatr, convertd)
         match ntscore:
@@ -327,6 +324,8 @@ def mmscore(seq1, seq2, cstar, cend, mmmatr, convertd):
             case-5:
                 mismatch +=3 
                 vislist.append("-")
+            case _:
+                raise Exception("Number out of range")
     for i, j in zip(seq1[cend:], seq2[cend:]):
         ntscore = score(i, j, mmmatr, convertd)
         match ntscore:
@@ -341,6 +340,8 @@ def mmscore(seq1, seq2, cstar, cend, mmmatr, convertd):
             case-5:
                 mismatch +=1.5
                 vislist.append("-")
+            case _:
+                raise Exception("Number out of range")
     if mismatch>=3:
         category = "High Risk"
     elif mismatch>1:
@@ -349,3 +350,4 @@ def mmscore(seq1, seq2, cstar, cend, mmmatr, convertd):
         category = "No Risk"
     
     return ["".join(vislist), category]
+    
