@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from utils import score, removed
+from utils import score
 #####SW+blast type aligner/searching algorithm#####
 
 #create kmer indexes of all database sequences
@@ -141,12 +141,13 @@ def blastn(database, query, index, k, bnmatr, convertd, namedata=None):
         print("No alignment found above threshold score")
          
     else: #remove duplicate alignments, remove insertions 
-        sortp = pdata.drop_duplicates(subset=['start_position', 'db_sequence_id', 'db_alignment']) 
-        top = sortp[sortp['query_alignment'].map(removed).map(len)==len(query)] 
-        top = top[top['db_alignment'].map(removed).map(len)==len(query)]
+        sortp = pdata.drop_duplicates(subset=['start_position', 'db_sequence_id', 'db_alignment'])
+        top = sortp[~sortp['db_alignment'].str.contains('-')]
+        top = top[~top['query_alignment'].str.contains('-')]
+        top = top[top['query_alignment'].str.len() == len(query)]
         print("Alignment found")
 
-        if top.isempty:
+        if top.empty:
             s = "Insertion or deletion in primer region for "+namedata[0]
             nomatch = ({'score': -1,
                         'query_alignment': "",
