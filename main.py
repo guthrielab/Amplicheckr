@@ -7,22 +7,22 @@ from scorer import *
 from jinja2 import Environment, FileSystemLoader
 
 thumbnail = r"""
-_______________________________________________________________________________________________________
- ______                      ___                __              __                    _          __     
-/\  _  \                    /\_ \    __        /\ \            /\ \                 /' \       /'__`\   
-\ \ \ \ \    ___ ___   _____\//\ \  /\_\    ___\ \ \___      __\ \ \/'\   _ __     /\_, \     /\ \/\ \  
- \ \  __ \ /' __` __`\/\ '__`\\ \ \ \/\ \  /'___\ \  _ `\  /'__`\ \ , <  /\`'__\   \/_/\ \    \ \ \ \ \ 
-  \ \ \/\ \/\ \/\ \/\ \ \ \ \ \\_\ \_\ \ \/\ \__/\ \ \ \ \/\  __/\ \ \\`\\ \ \/       \ \ \  __\ \ \_\ \
-   \ \_\ \_\ \_\ \_\ \_\ \ ,__//\____\\ \_\ \____\\ \_\ \_\ \____\\ \_\ \_\ \_\        \ \_\/\_\\ \____/
-    \/_/\/_/\/_/\/_/\/_/\ \ \/ \/____/ \/_/\/____/ \/_/\/_/\/____/ \/_/\/_/\/_/  _______\/_/\/_/ \/___/ 
-                         \ \_\                                                  /\______\               
-                          \/_/                                                  \/______/               
-_______________________________________________________________________________________________________
+________________________________________________________________________________________
+ ______                      ___                __              __                    
+/\  _  \                    /\_ \    __        /\ \            /\ \               
+\ \ \ \ \    ___ ___   _____\//\ \  /\_\    ___\ \ \___      __\ \ \/'\   _ __      
+ \ \  __ \ /' __` __`\/\ '__`\\ \ \ \/\ \  /'___\ \  _ `\  /'__`\ \ , <  /\`'__\   
+  \ \ \/\ \/\ \/\ \/\ \ \ \ \ \\_\ \_\ \ \/\ \__/\ \ \ \ \/\  __/\ \ \\`\\ \ \/   
+   \ \_\ \_\ \_\ \_\ \_\ \ ,__//\____\\ \_\ \____\\ \_\ \_\ \____\\ \_\ \_\ \_\   
+    \/_/\/_/\/_/\/_/\/_/\ \ \/ \/____/ \/_/\/____/ \/_/\/_/\/____/ \/_/\/_/\/_/   
+                         \ \_\                                                                 
+                          \/_/                                                                 
+________________________________________________________________________________________
 
 """
 description = """
 Perform \"local\" alignment via modified Smith-Waterson algorithm for 
-primers/sequences along genomes to score and validate amplicon efficiency.
+primers/sequences along genomes to score and validate primer binding efficiency.
 """ 
 
 np.set_printoptions(legacy="1.25")
@@ -51,7 +51,7 @@ def amplichekr(primerset, qudb, ntdb, index, k, metadb, bdict, convertd, bnmatr,
                 align = blastn(ntdb, seq, index, k,  bnmatr, convertd, namedata)
                 
                 align['set'] = i
-                alignout(align, bnmatr, bdict, namedata) if alignonly else tempresult.append(align)
+                alignout(align, bnmatr, bdict,convertd, namedata) if alignonly else tempresult.append(align)
             if not alignonly:
                 setdf = pd.concat(tempresult)
                 alignresults.append(setdf)
@@ -99,15 +99,17 @@ if __name__ == "__main__":
     parser.add_argument("-k","--kmer", type=int, default=7,
                         help="Specify kmer length to use for indexing and searching (default k=7)")
     parser.add_argument("-v","--virus", default= "influenza",
-                        help="Target virus species (influenza/i, hantavirus/h)")
+                        help="Target virus species (influenza/i, hantavirus/h, default influenza)")
     parser.add_argument("-hi", "--hello", action="store_true",
                         help="hi")
     parser.add_argument("-a", "--align", action="store_true",
                         help="Only perform alignment and skip grading.")
     parser.add_argument("-H", "--html", action="store_true",
-                        help="Activate html report generator (silences stdout)")
+                        help="Activate html report generator, redirects report from stdout")
     parser.add_argument("-o", "--output", default="", 
-                        help="Specify directory for html output location")
+                        help="Directory for html file output")
+    parser.add_argument("-t", "--thumb", action="store_true", 
+                        help="Print thumbnail")
     args = parser.parse_args()
 
     primerin = args.primers
@@ -118,6 +120,8 @@ if __name__ == "__main__":
     outputdir = args.output
     if args.hello:
         print("hi")
+    if args.thumb:
+        print(thumbnail)
     
     qudb, primerset = parsequ(fname=primerin)
     metadb, ntdb = parsedb(fname=genomein, fext=args.files, mode=mode)
